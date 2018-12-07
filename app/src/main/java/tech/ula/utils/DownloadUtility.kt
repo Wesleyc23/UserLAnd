@@ -17,6 +17,11 @@ class DownloadUtility(
         return assetList.map { it to download(it) }
     }
 
+    // TODO
+    fun downloadedSuccessfully(id: Long): Boolean {
+        return true
+    }
+
     private fun download(asset: Asset): Long {
         var branch = "master"
         if (asset.distributionType.equals("support", true))
