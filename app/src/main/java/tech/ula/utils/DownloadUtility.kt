@@ -23,9 +23,7 @@ class DownloadUtility(
     }
 
     private fun download(asset: Asset): Long {
-        var branch = "master"
-        if (asset.distributionType.equals("support", true))
-            branch = "staging"
+        val branch = if (asset.distributionType.equals("support", true)) "staging" else "master"
         val url = "https://github.com/CypherpunkArmory/UserLAnd-Assets-" +
                 "${asset.distributionType}/raw/$branch/assets/" +
                 "${asset.architectureType}/${asset.name}"
