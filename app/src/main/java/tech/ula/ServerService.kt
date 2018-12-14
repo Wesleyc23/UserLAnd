@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.Environment
 import android.os.IBinder
 import android.support.v4.content.LocalBroadcastManager
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.anko.defaultSharedPreferences
 import org.jetbrains.anko.doAsync
 import tech.ula.model.entities.App
@@ -28,33 +29,12 @@ class ServerService : Service() {
     }
 
     private val activeSessions: MutableMap<Long, Session> = mutableMapOf()
-    private var progressBarActive = false
-    private lateinit var lastActivatedSession: Session
-    private lateinit var lastActivatedFilesystem: Filesystem
 
     private lateinit var broadcaster: LocalBroadcastManager
 
 
     private val notificationManager: NotificationUtility by lazy {
         NotificationUtility(this)
-    }
-
-    private val timestampPreferences by lazy {
-        TimestampPreferences(this.getSharedPreferences("file_timestamps", Context.MODE_PRIVATE))
-    }
-
-    private val assetPreferences by lazy {
-        AssetPreferences(this.getSharedPreferences("assetLists", Context.MODE_PRIVATE))
-    }
-
-    private val appsList by lazy {
-        AppsPreferences(this.getSharedPreferences("apps", Context.MODE_PRIVATE))
-                .getAppsList()
-    }
-
-    private val networkUtility by lazy {
-        val connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        NetworkUtility(connectivityManager, ConnectionUtility())
     }
 
     private val execUtility by lazy {
@@ -68,17 +48,6 @@ class ServerService : Service() {
 
     private val serverUtility by lazy {
         ServerUtility(this.filesDir.path, execUtility)
-    }
-
-    private val filesystemExtractLogger = { line: String -> Unit
-        progressBarUpdater(getString(R.string.progress_setting_up),
-                getString(R.string.progress_setting_up_extract_text, line))
-    }
-
-    private fun initDownloadUtility(): DownloadUtility {
-        val downloadManager = this.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        return DownloadUtility(downloadManager, timestampPreferences,
-                DownloadManagerWrapper(), this.filesDir)
     }
 
     override fun onCreate() {
@@ -96,15 +65,11 @@ class ServerService : Service() {
         when (intentType) {
             "start" -> {
                 val session: Session = intent.getParcelableExtra("session")
-                val filesystem: Filesystem = intent.getParcelableExtra("filesystem")
-                startSession(session, filesystem, forceDownloads = false)
+                startSession(session)
             }
             "stopApp" -> {
                 val app: App = intent.getParcelableExtra("app")
                 stopApp(app)
-            }
-            "forceDownloads" -> {
-                startSession(lastActivatedSession, lastActivatedFilesystem, forceDownloads = true)
             }
             "restartRunningSession" -> {
                 val session: Session = intent.getParcelableExtra("session")
@@ -118,7 +83,6 @@ class ServerService : Service() {
                 val filesystemId: Long = intent.getLongExtra("filesystemId", -1)
                 cleanUpFilesystem(filesystemId)
             }
-            "isProgressBarActive" -> isProgressBarActive()
         }
 
         return Service.START_STICKY
@@ -151,7 +115,22 @@ class ServerService : Service() {
         updateSession(session)
     }
 
-    private fun startSession(session: Session, filesystem: Filesystem, forceDownloads: Boolean) {
+    private fun startSession(session: Session) = runBlocking {
+        startForeground(NotificationUtility.serviceNotificationId, notificationManager.buildPersistentServiceNotification())
+        val updatedSession = async {
+            session.pid = serverUtility.startServer(session)
+
+            while (!serverUtility.isServerRunning(session)) {
+                delay(500)
+            }
+
+            session
+        }.await()
+
+        updatedSession.active = true
+        updateSession(updatedSession)
+        startClient(updatedSession)
+        activeSessions[updatedSession.pid] = updatedSession
 //        lastActivatedSession = session
 //        lastActivatedFilesystem = filesystem
 //
@@ -300,31 +279,6 @@ class ServerService : Service() {
         filesystemUtility.deleteFilesystem(filesystemId)
     }
 
-    private fun killProgressBar() {
-        val intent = Intent(SERVER_SERVICE_RESULT)
-                .putExtra("type", "killProgressBar")
-        broadcaster.sendBroadcast(intent)
-
-        progressBarActive = false
-    }
-
-    private val progressBarUpdater: (String, String) -> Unit = {
-        step: String, details: String ->
-        progressBarActive = true
-        val intent = Intent(SERVER_SERVICE_RESULT)
-                .putExtra("type", "updateProgressBar")
-                .putExtra("step", step)
-                .putExtra("details", details)
-        broadcaster.sendBroadcast(intent)
-    }
-
-    private fun isProgressBarActive() {
-        val intent = Intent(SERVER_SERVICE_RESULT)
-                .putExtra("type", "isProgressBarActive")
-                .putExtra("isProgressBarActive", progressBarActive)
-        broadcaster.sendBroadcast(intent)
-    }
-
     private fun sendToastBroadcast(id: Int) {
         val intent = Intent(SERVER_SERVICE_RESULT)
                 .putExtra("type", "toast")
@@ -334,7 +288,6 @@ class ServerService : Service() {
 
     private val dialogBroadcaster: (String) -> Unit = {
         type: String ->
-        killProgressBar()
         val intent = Intent(SERVER_SERVICE_RESULT)
                 .putExtra("type", "dialog")
                 .putExtra("dialogType", type)
