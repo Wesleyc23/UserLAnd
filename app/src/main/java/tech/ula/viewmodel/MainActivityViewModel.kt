@@ -152,7 +152,7 @@ class MainActivityViewModel(private val appsStartupFsm: AppsStartupFsm, private 
             is IncorrectAppTransition -> {
                 state.postValue(IllegalState("Bad state transition: $newState"))
             }
-            is WaitingForAppSelection -> { }
+            is WaitingForAppSelection -> {}
             is FetchingDatabaseEntries -> {}
             is DatabaseEntriesFetched -> {
                 submitAppsStartupEvent(CheckAppsFilesystemCredentials(lastSelectedFilesystem))

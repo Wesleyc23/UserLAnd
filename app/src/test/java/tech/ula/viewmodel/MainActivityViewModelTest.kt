@@ -78,21 +78,17 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Restarts app setup after permissions are granted if an app was selected first`() {
+    fun `Restarts app setup after permissions are granted if an app was selected first`() = runBlocking {
         mainActivityViewModel.waitForPermissions(appToContinue = selectedApp)
         mainActivityViewModel.permissionsHaveBeenGranted()
-        runBlocking {
-            verify(mockAppsStartupFsm).submitEvent(AppSelected(selectedApp))
-        }
+        verify(mockAppsStartupFsm).submitEvent(AppSelected(selectedApp))
     }
 
     @Test
-    fun `Restarts session setup after permissions are granted if a session was selected first`() {
+    fun `Restarts session setup after permissions are granted if a session was selected first`() = runBlocking {
         mainActivityViewModel.waitForPermissions(sessionToContinue = selectedSession)
         mainActivityViewModel.permissionsHaveBeenGranted()
-        runBlocking {
-            verify(mockSessionStartupFsm).submitEvent(SessionSelected(selectedSession))
-        }
+        verify(mockSessionStartupFsm).submitEvent(SessionSelected(selectedSession))
     }
 
     @Test
@@ -112,58 +108,48 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Apps and sessions cannot be selected if apps state is not WaitingForAppSelection`() {
+    fun `Apps and sessions cannot be selected if apps state is not WaitingForAppSelection`() = runBlocking {
         appsStartupStateLiveData.postValue(FetchingDatabaseEntries)
 
         mainActivityViewModel.submitAppSelection(selectedApp)
         mainActivityViewModel.submitSessionSelection(selectedSession)
 
-        runBlocking {
-            verify(mockAppsStartupFsm, never()).submitEvent(AppSelected(selectedApp))
-            verify(mockSessionStartupFsm, never()).submitEvent(SessionSelected(selectedSession))
-        }
+        verify(mockAppsStartupFsm, never()).submitEvent(AppSelected(selectedApp))
+        verify(mockSessionStartupFsm, never()).submitEvent(SessionSelected(selectedSession))
     }
 
     @Test
-    fun `Apps and sessions cannot be selected if session state is not WaitingForSessionSelection`() {
+    fun `Apps and sessions cannot be selected if session state is not WaitingForSessionSelection`() = runBlocking {
         sessionStartupStateLiveData.postValue(SessionIsReadyForPreparation(selectedSession, Filesystem(id = 0)))
 
         mainActivityViewModel.submitAppSelection(selectedApp)
         mainActivityViewModel.submitSessionSelection(selectedSession)
 
-        runBlocking {
-            verify(mockAppsStartupFsm, never()).submitEvent(AppSelected(selectedApp))
-            verify(mockSessionStartupFsm, never()).submitEvent(SessionSelected(selectedSession))
-        }
+        verify(mockAppsStartupFsm, never()).submitEvent(AppSelected(selectedApp))
+        verify(mockSessionStartupFsm, never()).submitEvent(SessionSelected(selectedSession))
     }
 
     @Test
-    fun `Submits app selection if selections can be made`() {
+    fun `Submits app selection if selections can be made`() = runBlocking {
         // App and session state are initialized to waiting for selection
         mainActivityViewModel.submitAppSelection(selectedApp)
 
-        runBlocking {
-            verify(mockAppsStartupFsm).submitEvent(AppSelected(selectedApp))
-        }
+        verify(mockAppsStartupFsm).submitEvent(AppSelected(selectedApp))
     }
 
     @Test
-    fun `Submits session selection if selections can be made`() {
+    fun `Submits session selection if selections can be made`() = runBlocking {
         // App and session state are initialized to waiting for selection
         mainActivityViewModel.submitSessionSelection(selectedSession)
 
-        runBlocking {
-            verify(mockSessionStartupFsm).submitEvent(SessionSelected(selectedSession))
-        }
+        verify(mockSessionStartupFsm).submitEvent(SessionSelected(selectedSession))
     }
 
     @Test
-    fun `Submits completed download ids`() {
+    fun `Submits completed download ids`() = runBlocking {
         mainActivityViewModel.submitCompletedDownloadId(1)
 
-        runBlocking {
-            verify(mockSessionStartupFsm).submitEvent(AssetDownloadComplete(1))
-        }
+        verify(mockSessionStartupFsm).submitEvent(AssetDownloadComplete(1))
     }
 
     @Test
@@ -174,7 +160,7 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Submits filesystem credentials for last selected filesystem`() {
+    fun `Submits filesystem credentials for last selected filesystem`() = runBlocking {
         val username = "user"
         val password = "pass"
         val vncPassword = "vnc"
@@ -182,9 +168,7 @@ class MainActivityViewModelTest {
 
         mainActivityViewModel.submitFilesystemCredentials(username, password, vncPassword)
 
-        runBlocking {
-            verify(mockAppsStartupFsm).submitEvent(SubmitAppsFilesystemCredentials(selectedFilesystem, username, password, vncPassword))
-        }
+        verify(mockAppsStartupFsm).submitEvent(SubmitAppsFilesystemCredentials(selectedFilesystem, username, password, vncPassword))
     }
 
     @Test
@@ -195,18 +179,16 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Submits app service preference for last selected app`() {
+    fun `Submits app service preference for last selected app`() = runBlocking {
         mainActivityViewModel.lastSelectedApp = selectedApp
 
         mainActivityViewModel.submitAppServicePreference(SshTypePreference)
 
-        runBlocking {
-            verify(mockAppsStartupFsm).submitEvent(SubmitAppServicePreference(selectedApp, SshTypePreference))
-        }
+        verify(mockAppsStartupFsm).submitEvent(SubmitAppServicePreference(selectedApp, SshTypePreference))
     }
 
     @Test
-    fun `Resets startup state when user input is cancelled`() {
+    fun `Resets startup state when user input is cancelled`() = runBlocking {
         mainActivityViewModel.lastSelectedApp = selectedApp
         mainActivityViewModel.lastSelectedSession = selectedSession
         mainActivityViewModel.lastSelectedFilesystem = selectedFilesystem
@@ -217,21 +199,17 @@ class MainActivityViewModelTest {
         assertEquals(mainActivityViewModel.lastSelectedSession, unselectedSession)
         assertEquals(mainActivityViewModel.lastSelectedFilesystem, unselectedFilesystem)
 
-        runBlocking {
-            verify(mockAppsStartupFsm).submitEvent(ResetAppState)
-            verify(mockSessionStartupFsm).submitEvent(ResetSessionState)
-        }
+        verify(mockAppsStartupFsm).submitEvent(ResetAppState)
+        verify(mockSessionStartupFsm).submitEvent(ResetSessionState)
     }
 
     @Test
-    fun `Submits DownloadAssets event`() {
+    fun `Submits DownloadAssets event`() = runBlocking {
         val downloads = listOf(asset)
 
         mainActivityViewModel.startAssetDownloads(downloads)
 
-        runBlocking {
-            verify(mockSessionStartupFsm).submitEvent(DownloadAssets(downloads))
-        }
+        verify(mockSessionStartupFsm).submitEvent(DownloadAssets(downloads))
     }
 
     @Test
@@ -268,7 +246,7 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Updates last selected session and filesystem and submits check credentials event when app database entries are fetched`() {
+    fun `Updates last selected session and filesystem and submits check credentials event when app database entries are fetched`() = runBlocking {
         makeAppSelections()
 
         appsStartupStateLiveData.postValue(DatabaseEntriesFetched(selectedFilesystem, selectedSession))
@@ -276,9 +254,7 @@ class MainActivityViewModelTest {
         assertEquals(selectedFilesystem, mainActivityViewModel.lastSelectedFilesystem)
         assertEquals(selectedSession, mainActivityViewModel.lastSelectedSession)
 
-        runBlocking {
-            verify(mockAppsStartupFsm).submitEvent(CheckAppsFilesystemCredentials(selectedFilesystem))
-        }
+        verify(mockAppsStartupFsm).submitEvent(CheckAppsFilesystemCredentials(selectedFilesystem))
     }
 
     @Test
@@ -291,14 +267,12 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Submit preference check event if observed event is filesystem has credentials`() {
+    fun `Submit preference check event if observed event is filesystem has credentials`() = runBlocking {
         makeAppSelections()
 
         appsStartupStateLiveData.postValue(AppsFilesystemHasCredentials)
 
-        runBlocking {
-            verify(mockAppsStartupFsm).submitEvent(CheckAppServicePreference(selectedApp))
-        }
+        verify(mockAppsStartupFsm).submitEvent(CheckAppServicePreference(selectedApp))
     }
 
     @Test
@@ -311,14 +285,12 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Submits CopyAppScript event if observed event is app has service preference set`() {
+    fun `Submits CopyAppScript event if observed event is app has service preference set`() = runBlocking {
         makeAppSelections()
 
         appsStartupStateLiveData.postValue(AppHasServiceTypePreferenceSet)
 
-        runBlocking {
-            verify(mockAppsStartupFsm).submitEvent(CopyAppScriptToFilesystem(selectedApp, selectedFilesystem))
-        }
+        verify(mockAppsStartupFsm).submitEvent(CopyAppScriptToFilesystem(selectedApp, selectedFilesystem))
     }
 
     @Test
@@ -331,14 +303,12 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Submits SyncDataBaseEntries when observed event is app script copying succeeded`() {
+    fun `Submits SyncDataBaseEntries when observed event is app script copying succeeded`() = runBlocking {
         makeAppSelections()
 
         appsStartupStateLiveData.postValue(AppScriptCopySucceeded)
 
-        runBlocking {
-            verify(mockAppsStartupFsm).submitEvent(SyncDatabaseEntries(selectedApp, selectedSession, selectedFilesystem))
-        }
+        verify(mockAppsStartupFsm).submitEvent(SyncDatabaseEntries(selectedApp, selectedSession, selectedFilesystem))
     }
 
     @Test
@@ -351,7 +321,7 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Updates session and filesystem and submits session selected event once database entries sync`() {
+    fun `Updates session and filesystem and submits session selected event once database entries sync`() = runBlocking {
         makeAppSelections()
 
         val updatedSession = Session(0, name = "updated", filesystemId = 0)
@@ -361,9 +331,7 @@ class MainActivityViewModelTest {
         assertEquals(updatedSession, mainActivityViewModel.lastSelectedSession)
         assertEquals(updatedFilesystem, mainActivityViewModel.lastSelectedFilesystem)
 
-        runBlocking {
-            verify(mockSessionStartupFsm).submitEvent(SessionSelected(updatedSession))
-        }
+        verify(mockSessionStartupFsm).submitEvent(SessionSelected(updatedSession))
     }
 
     @Test
@@ -404,16 +372,14 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Updates selected session and filesystem, posts StartingSetup, and submits RetrieveAssetLists when session is ready for prep is observed`() {
+    fun `Updates selected session and filesystem, posts StartingSetup, and submits RetrieveAssetLists when session is ready for prep is observed`() = runBlocking {
         sessionStartupStateLiveData.postValue(SessionIsReadyForPreparation(selectedSession, selectedFilesystem))
 
         assertEquals(selectedSession, mainActivityViewModel.lastSelectedSession)
         assertEquals(selectedFilesystem, mainActivityViewModel.lastSelectedFilesystem)
 
         verify(mockStateObserver).onChanged(StartingSetup)
-        runBlocking {
-            verify(mockSessionStartupFsm).submitEvent(RetrieveAssetLists(selectedFilesystem))
-        }
+        verify(mockSessionStartupFsm).submitEvent(RetrieveAssetLists(selectedFilesystem))
     }
 
     @Test
@@ -426,15 +392,13 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Submits GenerateDownload event if asset list retrieval success observed`() {
+    fun `Submits GenerateDownload event if asset list retrieval success observed`() = runBlocking {
         makeSessionSelections()
 
         val assetLists = listOf(listOf(asset))
         sessionStartupStateLiveData.postValue(AssetListsRetrievalSucceeded(assetLists))
 
-        runBlocking {
-            verify(mockSessionStartupFsm).submitEvent(GenerateDownloads(selectedFilesystem, assetLists))
-        }
+        verify(mockSessionStartupFsm).submitEvent(GenerateDownloads(selectedFilesystem, assetLists))
     }
 
     @Test
@@ -466,26 +430,22 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Submits DownloadAssets event if downloads are required but do not include a large one`() {
+    fun `Submits DownloadAssets event if downloads are required but do not include a large one`() = runBlocking {
         makeSessionSelections()
 
         val downloads = listOf(asset)
         sessionStartupStateLiveData.postValue(DownloadsRequired(downloads, largeDownloadRequired = false))
 
-        runBlocking {
-            verify(mockSessionStartupFsm).submitEvent(DownloadAssets(downloads))
-        }
+        verify(mockSessionStartupFsm).submitEvent(DownloadAssets(downloads))
     }
 
     @Test
-    fun `Submits extract filesystem event if no downloads are required`() {
+    fun `Submits extract filesystem event if no downloads are required`() = runBlocking {
         makeSessionSelections()
 
         sessionStartupStateLiveData.postValue(NoDownloadsRequired)
 
-        runBlocking {
-            verify(mockSessionStartupFsm).submitEvent(ExtractFilesystem(selectedFilesystem))
-        }
+        verify(mockSessionStartupFsm).submitEvent(ExtractFilesystem(selectedFilesystem))
     }
 
     @Test
@@ -498,14 +458,12 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Submits CopyDownloadsToLocalStorage event when observing download success`() {
+    fun `Submits CopyDownloadsToLocalStorage event when observing download success`() = runBlocking {
         makeSessionSelections()
 
         sessionStartupStateLiveData.postValue(DownloadsHaveSucceeded)
 
-        runBlocking {
-            verify(mockSessionStartupFsm).submitEvent(CopyDownloadsToLocalStorage)
-        }
+        verify(mockSessionStartupFsm).submitEvent(CopyDownloadsToLocalStorage)
     }
 
     @Test
@@ -528,14 +486,12 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Submits ExtractFilesystem event when copying success is observed`() {
+    fun `Submits ExtractFilesystem event when copying success is observed`() = runBlocking {
         makeSessionSelections()
 
         sessionStartupStateLiveData.postValue(CopyingSucceeded)
 
-        runBlocking {
-            verify(mockSessionStartupFsm).submitEvent(ExtractFilesystem(selectedFilesystem))
-        }
+        verify(mockSessionStartupFsm).submitEvent(ExtractFilesystem(selectedFilesystem))
     }
 
     @Test
@@ -567,14 +523,12 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Submits VerifyFilesystemAssets when extraction success is observed`() {
+    fun `Submits VerifyFilesystemAssets when extraction success is observed`() = runBlocking {
         makeSessionSelections()
 
         sessionStartupStateLiveData.postValue(ExtractionSucceeded)
 
-        runBlocking {
-            verify(mockSessionStartupFsm).submitEvent(VerifyFilesystemAssets(selectedFilesystem))
-        }
+        verify(mockSessionStartupFsm).submitEvent(VerifyFilesystemAssets(selectedFilesystem))
     }
 
     @Test
@@ -596,7 +550,7 @@ class MainActivityViewModelTest {
     }
 
     @Test
-    fun `Posts SessionCanBeStarted and resets state when observing that filesystem has all required assets`() {
+    fun `Posts SessionCanBeStarted and resets state when observing that filesystem has all required assets`() = runBlocking {
         makeSessionSelections()
 
         sessionStartupStateLiveData.postValue(FilesystemHasRequiredAssets)
@@ -605,10 +559,8 @@ class MainActivityViewModelTest {
         assertEquals(unselectedApp, mainActivityViewModel.lastSelectedApp)
         assertEquals(unselectedSession, mainActivityViewModel.lastSelectedSession)
         assertEquals(unselectedFilesystem, mainActivityViewModel.lastSelectedFilesystem)
-        runBlocking {
-            verify(mockSessionStartupFsm).submitEvent(ResetSessionState)
-            verify(mockAppsStartupFsm).submitEvent(ResetAppState)
-        }
+        verify(mockSessionStartupFsm).submitEvent(ResetSessionState)
+        verify(mockAppsStartupFsm).submitEvent(ResetAppState)
     }
 
     @Test
